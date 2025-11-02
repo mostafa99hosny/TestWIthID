@@ -40,18 +40,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
         //   name: 'Create Excel Test',
         //   path: '/'
         // },
-        {
-          name: "With ID Excel Test",
-          path: '/testing/with-id'
-        },
-        {
-          name: 'Get Test',
-          path: '/testing/get'
-        },
-        {
-          name: 'Navigate and Upload Test',
-          path: '/testing/navigate-upload'
-        }
+        // {
+        //   name: "With ID Excel Test",
+        //   path: '/testing/with-id'
+        // },
+        // {
+        //   name: 'Get Test',
+        //   path: '/testing/get'
+        // },
+        // {
+        //   name: 'Navigate and Upload Test',
+        //   path: '/testing/navigate-upload'
+        // }
       ]
     },
   ];
