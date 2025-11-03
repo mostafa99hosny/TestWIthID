@@ -34,15 +34,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
       subItems: [
         {
           name: 'Taqeem Login Test',
-          path: '/ww'
+          path: '/'
+        },
+        {
+          name: "With ID Excel Test",
+          path: '/testing/with-id'
         },
         // {
         //   name: 'Create Excel Test',
         //   path: '/'
-        // },
-        // {
-        //   name: "With ID Excel Test",
-        //   path: '/testing/with-id'
         // },
         // {
         //   name: 'Get Test',

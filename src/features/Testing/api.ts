@@ -8,7 +8,7 @@ export const addEquipmentReport = async (
 ) => {
   const formData = new FormData();
   formData.append("baseData", JSON.stringify(baseData));
-  formData.append("excel", excelFile);
+  formData.append("excelFile", excelFile);
   pdfFiles.forEach(file => formData.append('pdfs', file));
 
   try {
@@ -37,10 +37,10 @@ export const getAllAssets = async () => {
 export const uploadAssetsToDB = async (reportId: string, excelFile: File) => {
   const formData = new FormData();
   formData.append("reportId", reportId);
-  formData.append("excel", excelFile);
+  formData.append("excelFile", excelFile);
 
   try {
-    const response = await api.post("/scripts/equip/extractData", formData, {
+    const response = await api.post("/taqeemSubmission/save-without-base", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -55,7 +55,7 @@ export const uploadAssetsToDB = async (reportId: string, excelFile: File) => {
 export const withFormUploadHalfReportToDB = async (formData: any, excelFile: File, pdfFiles: File[]) => {
   const formData2 = new FormData();
   formData2.append("formData", JSON.stringify(formData));
-  formData2.append("excel", excelFile);
+  formData2.append("excelFile", excelFile);
   pdfFiles.forEach(file => formData2.append('pdfs', file));
 
   try {
@@ -103,7 +103,7 @@ export const getReportsData = async () => {
 
 export const extractReportData = async (excel: File, pdfs: File[]) => {
   const formData = new FormData();
-  formData.append("excel", excel);
+  formData.append("excelFile", excel);
   pdfs.forEach((file) => formData.append("pdfs", file));
 
   try {
@@ -130,6 +130,18 @@ export const taqeemLogin = async (email: string, password: string,) => {
     return response.data;
   } catch (error) {
     throw new Error('Error logging in');
+  }
+};
+
+export const validateExcelData = async (reportId: string, fileData: any) => {
+  try {
+    const response = await api.post('/taqeemSubmission/validate-report', {
+      reportId: reportId.trim(),
+      fileData,
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error('Error validating Excel data');
   }
 };
 
