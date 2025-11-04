@@ -20,7 +20,7 @@ interface MenuItem {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
   const { isRTL } = useLanguage();
   const location = useLocation();
-  
+
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
     '/testing': true // Expand testing menu by default
   });
@@ -40,6 +40,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
           name: "With ID Excel Test",
           path: '/testing/with-id'
         },
+        {
+          name: "Asset Create Test",
+          path: "/testing/asset-create"
+        }
         // {
         //   name: 'Create Excel Test',
         //   path: '/'
@@ -58,7 +62,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
 
   const isActive = (path: string) => location.pathname === path;
   const isSubActive = (path: string) => {
-    if(!path) return false;
+    if (!path) return false;
     return location.pathname.startsWith(path);
   }
 
@@ -91,10 +95,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
             <li key={index}>
               {item.subItems ? (
                 <div className="space-y-2">
-                  <div 
-                    className={`flex items-center p-2 text-gray-700 rounded-lg cursor-pointer ${
-                      isSubActive(item.path) ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100'
-                    }`} 
+                  <div
+                    className={`flex items-center p-2 text-gray-700 rounded-lg cursor-pointer ${isSubActive(item.path) ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100'
+                      }`}
                     onClick={() => toggleMenu(item.path)}
                   >
                     <span className={iconMargin}>{item.icon}</span>
@@ -111,11 +114,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
                     <ul className={`${subMenuMargin} space-y-1 ${subMenuBorder} border-gray-200 ${subMenuPadding}`}>
                       {item.subItems.map((subItem, subIndex) => (
                         <li key={subIndex}>
-                          <Link 
-                            to={subItem.path} 
-                            className={`flex items-center p-2 text-gray-700 rounded-lg ${
-                              isActive(subItem.path) ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100'
-                            }`}
+                          <Link
+                            to={subItem.path}
+                            className={`flex items-center p-2 text-gray-700 rounded-lg ${isActive(subItem.path) ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100'
+                              }`}
                           >
                             <span className="flex-1 whitespace-nowrap">
                               {subItem.name}
@@ -127,11 +129,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
                   )}
                 </div>
               ) : (
-                <Link 
-                  to={item.path} 
-                  className={`flex items-center p-2 text-gray-700 rounded-lg ${
-                    isActive(item.path) ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100'
-                  }`}
+                <Link
+                  to={item.path}
+                  className={`flex items-center p-2 text-gray-700 rounded-lg ${isActive(item.path) ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100'
+                    }`}
                 >
                   <span className={iconMargin}>{item.icon}</span>
                   <span className={`flex-1 ${textMargin} whitespace-nowrap`}>

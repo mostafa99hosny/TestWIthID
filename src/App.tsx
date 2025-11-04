@@ -9,6 +9,7 @@ import GetTest from './features/Testing/pages/GetTest';
 import TaqeemLoginTest from './features/Testing/pages/TaqeemLoginTest';
 import NavigateUploadTest from './features/Testing/pages/NavigateUploadTest';
 import WithIDExcelTest from './features/Testing/pages/WithIDExcelTest';
+import AssetCreate from './features/Testing/pages/AssetCreate';
 
 export function App() {
   return (
@@ -18,9 +19,9 @@ export function App() {
           <Router>
             <Layout>
               <Routes>
-                {/* <Route path="/" element={<ExcelTest />} /> */}
                 <Route path="/" element={<TaqeemLoginTest />} />
                 <Route path="/testing/with-id" element={<WithIDExcelTest />} />
+                <Route path="/testing/asset-create" element={<AssetCreate />} />
                 <Route path="/testing/get" element={<GetTest />} />
                 <Route path="/testing/navigate-upload" element={<NavigateUploadTest />} />
               </Routes>
