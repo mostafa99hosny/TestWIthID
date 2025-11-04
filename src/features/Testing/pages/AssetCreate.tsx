@@ -7,10 +7,11 @@ import {
     FileText,
     RefreshCw,
     Plus,
-    Hash
+    Hash,
+    Play
 } from "lucide-react";
 
-import { validateExcelData } from "../api";
+import { validateExcelData, createAssets } from "../api";
 
 import ProgressIndicator from "../components/ProgressIndicator";
 import StepHeader from "../components/StepHeader";
@@ -21,7 +22,7 @@ const AssetCreate: React.FC = () => {
 
     // Step management
     const [currentStep, setCurrentStep] = useState<
-        'report-id-check' | 'asset-configuration' | 'success'
+        'report-id-check' | 'asset-configuration' | 'creation-in-progress' | 'success' | 'error'
     >('report-id-check');
 
     // Report ID state
@@ -34,14 +35,19 @@ const AssetCreate: React.FC = () => {
     const [assetCount, setAssetCount] = useState("");
     const [error, setError] = useState("");
 
+    // Asset creation state
+    const [isCreatingAssets, setIsCreatingAssets] = useState(false);
+    const [creationResult, setCreationResult] = useState<any>(null);
+
     // Step definitions for progress indicator
     const steps = [
         { step: 'report-id-check', label: 'Report ID Check', icon: Search },
         { step: 'asset-configuration', label: 'Asset Configuration', icon: Plus },
+        { step: 'creation-in-progress', label: 'Creation', icon: Play },
         { step: 'success', label: 'Success', icon: CheckCircle }
     ];
 
-    // Step 1: Check Report ID (same as before)
+    // Step 1: Check Report ID
     const handleCheckReport = async () => {
         if (!reportId.trim()) {
             setError("Please enter a report ID");
@@ -87,8 +93,8 @@ const AssetCreate: React.FC = () => {
         }
     };
 
-    // Step 2: Handle asset configuration submission
-    const handleAssetConfiguration = () => {
+    // Step 2: Handle asset creation
+    const handleCreateAssets = async () => {
         if (!tabsInput.trim() || !assetCount.trim()) {
             setError("Both fields are required");
             return;
@@ -100,9 +106,36 @@ const AssetCreate: React.FC = () => {
             return;
         }
 
-        // For now, just proceed to success since we're only building the UI
-        setCurrentStep('success');
+        const tabsNum = parseInt(tabsInput) || 3;
+
         setError("");
+        setIsCreatingAssets(true);
+        setCurrentStep('creation-in-progress');
+
+        try {
+            console.log(`Creating assets for report: ${reportId}, count: ${count}, tabs: ${tabsNum}`);
+
+            const result = await createAssets(reportId, count, tabsNum);
+            console.log("Asset creation result:", result);
+
+            setCreationResult(result);
+
+            if (result.success) {
+                setCurrentStep('success');
+            } else if (result.stopped) {
+                setError(result.message || 'Asset creation was stopped by user');
+                setCurrentStep('error');
+            } else {
+                setError(result.error || 'Failed to create assets');
+                setCurrentStep('error');
+            }
+        } catch (err: any) {
+            console.error("Error creating assets:", err);
+            setError(err.message || 'An unexpected error occurred during asset creation');
+            setCurrentStep('error');
+        } finally {
+            setIsCreatingAssets(false);
+        }
     };
 
     // Reset process
@@ -113,6 +146,8 @@ const AssetCreate: React.FC = () => {
         setTabsInput("");
         setAssetCount("");
         setError("");
+        setIsCreatingAssets(false);
+        setCreationResult(null);
     };
 
     return (
@@ -157,7 +192,7 @@ const AssetCreate: React.FC = () => {
                                             value={reportId}
                                             onChange={(e) => {
                                                 setReportId(e.target.value);
-                                                setReportExists(null); // Reset existence check when ID changes
+                                                setReportExists(null);
                                                 setError("");
                                             }}
                                             className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
@@ -241,20 +276,22 @@ const AssetCreate: React.FC = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         <Plus className="w-4 h-4 inline mr-1" />
-                                        Tabs Input *
+                                        Number of Tabs *
                                     </label>
                                     <input
-                                        type="text"
+                                        type="number"
                                         value={tabsInput}
                                         onChange={(e) => {
                                             setTabsInput(e.target.value);
                                             setError("");
                                         }}
+                                        min="1"
+                                        max="10"
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                                        placeholder="Enter tabs configuration (e.g., Sheet1,Sheet2,Sheet3)"
+                                        placeholder="Enter number of tabs (default: 3)"
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Specify the tab names separated by commas
+                                        Specify the number of tabs to create (usually 3)
                                     </p>
                                 </div>
 
@@ -288,9 +325,7 @@ const AssetCreate: React.FC = () => {
                                             {tabsInput && (
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-600">Tabs:</span>
-                                                    <span className="font-medium">
-                                                        {tabsInput.split(',').map(tab => tab.trim()).filter(Boolean).join(', ')}
-                                                    </span>
+                                                    <span className="font-medium">{tabsInput}</span>
                                                 </div>
                                             )}
                                             {assetCount && (
@@ -315,21 +350,46 @@ const AssetCreate: React.FC = () => {
 
                             <NavigationButtons
                                 onBack={() => setCurrentStep('report-id-check')}
-                                onNext={handleAssetConfiguration}
-                                nextLabel="Continue"
+                                onNext={handleCreateAssets}
+                                nextLabel="Create Assets"
                                 backLabel="Back to Report Check"
                                 nextDisabled={!tabsInput.trim() || !assetCount.trim()}
                             />
                         </div>
                     )}
 
-                    {/* Step 3: Success */}
+                    {/* Step 3: Creation In Progress */}
+                    {currentStep === 'creation-in-progress' && (
+                        <div className="space-y-6">
+                            <StepHeader
+                                icon={RefreshCw}
+                                title="Creating Assets"
+                                description="Please wait while we create your assets..."
+                                iconColor="text-orange-500"
+                            />
+
+                            <div className="bg-orange-50 border border-orange-200 rounded-xl p-8 text-center">
+                                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <RefreshCw className="w-8 h-8 text-orange-600 animate-spin" />
+                                </div>
+                                <h3 className="text-xl font-semibold text-orange-800 mb-2">Creating Assets</h3>
+                                <p className="text-orange-600 mb-4">
+                                    Please wait while we create {assetCount} assets for report <strong>{reportId}</strong>
+                                </p>
+                                <p className="text-sm text-orange-500">
+                                    This may take a few moments...
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 4: Success */}
                     {currentStep === 'success' && (
                         <div className="space-y-6">
                             <StepHeader
                                 icon={CheckCircle}
                                 title="Success!"
-                                description="Your asset configuration has been saved successfully"
+                                description="Your assets have been created successfully"
                                 iconColor="text-green-500"
                             />
 
@@ -337,11 +397,11 @@ const AssetCreate: React.FC = () => {
                                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <CheckCircle className="w-8 h-8 text-green-600" />
                                 </div>
-                                <h3 className="text-xl font-semibold text-green-800 mb-2">Asset Configuration Saved!</h3>
+                                <h3 className="text-xl font-semibold text-green-800 mb-2">Assets Created Successfully!</h3>
                                 <p className="text-green-600 mb-2">Report ID: <strong>{reportId}</strong></p>
 
                                 <div className="bg-white rounded-lg p-4 max-w-md mx-auto mb-4">
-                                    <h4 className="font-medium text-gray-800 mb-2">Configuration Details:</h4>
+                                    <h4 className="font-medium text-gray-800 mb-2">Creation Details:</h4>
                                     <div className="space-y-1 text-sm text-left">
                                         <div className="flex justify-between">
                                             <span className="text-gray-600">Tabs:</span>
@@ -351,10 +411,16 @@ const AssetCreate: React.FC = () => {
                                             <span className="text-gray-600">Asset Count:</span>
                                             <span className="font-medium">{assetCount}</span>
                                         </div>
+                                        {creationResult?.data?.status && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Status:</span>
+                                                <span className="font-medium text-green-600">{creationResult.data.status}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
-                                <p className="text-green-600 mb-4">The asset configuration has been successfully processed.</p>
+                                <p className="text-green-600 mb-4">The assets have been successfully created and added to your report.</p>
 
                                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                                     <button
@@ -368,6 +434,41 @@ const AssetCreate: React.FC = () => {
                                         className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg font-semibold transition-colors"
                                     >
                                         Create New Assets
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Error State */}
+                    {currentStep === 'error' && (
+                        <div className="space-y-6">
+                            <StepHeader
+                                icon={FileText}
+                                title="Error"
+                                description="There was an issue creating your assets"
+                                iconColor="text-red-500"
+                            />
+
+                            <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <FileText className="w-8 h-8 text-red-600" />
+                                </div>
+                                <h3 className="text-xl font-semibold text-red-800 mb-2">Asset Creation Failed</h3>
+                                <p className="text-red-600 mb-4">{error}</p>
+
+                                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                                    <button
+                                        onClick={() => setCurrentStep('asset-configuration')}
+                                        className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
+                                    >
+                                        Try Again
+                                    </button>
+                                    <button
+                                        onClick={resetProcess}
+                                        className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg font-semibold transition-colors"
+                                    >
+                                        Start Over
                                     </button>
                                 </div>
                             </div>

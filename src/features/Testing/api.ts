@@ -35,7 +35,7 @@ export const getAllAssets = async () => {
 };
 
 export const uploadAssetsToDB = async (
-  reportId: string, 
+  reportId: string,
   excelFile: File,
   region: string,
   city: string,
@@ -82,7 +82,7 @@ export const withFormUploadHalfReportToDB = async (formData: any, excelFile: Fil
 
 export const addAssetsToReport = async (reportId: string) => {
   try {
-    const response = await api.post("/scripts/equip/addAssets", {reportId});
+    const response = await api.post("/scripts/equip/addAssets", { reportId });
     return response.data;
   } catch (error) {
     console.error("Error adding assets to report:", error);
@@ -92,7 +92,7 @@ export const addAssetsToReport = async (reportId: string) => {
 
 export const checkAssets = async (reportId: string) => {
   try {
-    const response = await api.post("/scripts/equip/check", {reportId});
+    const response = await api.post("/scripts/equip/check", { reportId });
     return response.data;
   } catch (error) {
     console.error("Error checking assets:", error);
@@ -130,15 +130,42 @@ export const extractReportData = async (excel: File, pdfs: File[]) => {
 
 // ============ Taqeem Authentication ============
 
-export const taqeemLogin = async (email: string, password: string,) => {
+export const taqeemLogin = async (email: string, password: string, method?: string) => {
   try {
     const response = await api.post('/taqeemAuth/login', {
       email: email.trim(),
       password: password.trim(),
+      method: method
     });
     return response.data;
   } catch (error) {
     throw new Error('Error logging in');
+  }
+};
+
+export const createAssets = async (
+  reportId: string,
+  macroCount: number,
+  tabsNum: number = 3
+) => {
+  try {
+    const response = await api.post("/taqeemSubmission/create-assets", {
+      reportId: reportId.trim(),
+      macroCount,
+      tabsNum,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Error creating assets:", error);
+
+    // Handle specific error cases based on the controller
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    } else if (error.message?.includes('timeout')) {
+      throw new Error('Asset creation timeout. Please try again.');
+    } else {
+      throw new Error('Error creating assets');
+    }
   }
 };
 
@@ -170,7 +197,7 @@ export const submitOTP = async (otp: string) => {
 
 export const checkMacros = async (id: string, tabsNum: number) => {
   try {
-    const response = await api.post("/scripts/equip/check", {id, tabsNum});
+    const response = await api.post("/scripts/equip/check", { id, tabsNum });
     return response.data;
   } catch (error) {
     console.error("Error checking assets:", error);
@@ -180,7 +207,7 @@ export const checkMacros = async (id: string, tabsNum: number) => {
 
 export const retryMacros = async (id: string, tabsNum: number) => {
   try {
-    const response = await api.post("/scripts/equip/retry", {id, tabsNum});
+    const response = await api.post("/scripts/equip/retry", { id, tabsNum });
     return response.data;
   } catch (error) {
     console.error("Error retrying assets:", error);
@@ -190,7 +217,7 @@ export const retryMacros = async (id: string, tabsNum: number) => {
 
 export const halfReportSubmit = async (id: string, tabsNum: number) => {
   try {
-    const response = await api.post("/scripts/equip/fillForm2", {id, tabsNum});
+    const response = await api.post("/scripts/equip/fillForm2", { id, tabsNum });
     return response.data;
   } catch (error) {
     console.error("Error submitting report:", error);
@@ -201,7 +228,7 @@ export const halfReportSubmit = async (id: string, tabsNum: number) => {
 // Control APIs - These can still be used if not using socket
 export const stop = async (id: string) => {
   try {
-    const response = await api.post("/scripts/equip/stop", {id});
+    const response = await api.post("/scripts/equip/stop", { id });
     return response.data;
   } catch (error) {
     console.error("Error stopping assets:", error);
@@ -211,7 +238,7 @@ export const stop = async (id: string) => {
 
 export const pause = async (id: string) => {
   try {
-    const response = await api.post("/scripts/equip/pause", {id});
+    const response = await api.post("/scripts/equip/pause", { id });
     return response.data;
   } catch (error) {
     console.error("Error pausing assets:", error);
@@ -221,7 +248,7 @@ export const pause = async (id: string) => {
 
 export const resume = async (id: string) => {
   try {
-    const response = await api.post("/scripts/equip/resume", {id});
+    const response = await api.post("/scripts/equip/resume", { id });
     return response.data;
   } catch (error) {
     console.error("Error resuming assets:", error);
