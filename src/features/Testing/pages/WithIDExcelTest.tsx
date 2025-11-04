@@ -9,8 +9,11 @@ import {
   RefreshCw,
   ArrowLeft,
   Download,
-  Search
+  Search,
+  Calendar,
+  Eye
 } from "lucide-react";
+import * as XLSX from "xlsx";
 
 import { uploadAssetsToDB, validateExcelData } from "../api";
 import {
@@ -28,6 +31,10 @@ import NavigationButtons from "../components/NavigationButtons";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SuccessState from "../components/SuccessState";
 
+interface ExcelRow {
+  [key: string]: string | number | boolean | null;
+}
+
 const WithIDExcelTest: React.FC = () => {
   const navigate = useNavigate();
 
@@ -42,6 +49,11 @@ const WithIDExcelTest: React.FC = () => {
   const [reportId, setReportId] = useState("");
   const [reportExists, setReportExists] = useState<boolean | null>(null);
   const [isCheckingReport, setIsCheckingReport] = useState(false);
+
+  // New form fields
+  const [region, setRegion] = useState("");
+  const [city, setCity] = useState("");
+  const [inspectionDate, setInspectionDate] = useState("");
 
   // Validation state
   const [validationResults, setValidationResults] = useState<ValidationResults>({
@@ -59,6 +71,23 @@ const WithIDExcelTest: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
 
+  // Excel Preview State
+  const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
+  const [sheets, setSheets] = useState<string[]>([]);
+  const [selectedSheet, setSelectedSheet] = useState<string>("");
+  const [previewData, setPreviewData] = useState<ExcelRow[]>([]);
+  const [columns, setColumns] = useState<string[]>([]);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  // Sample data for dropdowns - replace with your actual data
+  const regions = [
+    "منطقة الرياض"
+  ];
+
+  const citiesByRegion: { [key: string]: string[] } = {
+    "منطقة الرياض": ["الرياض", "الدرعية", "الخرج", "المجمعة", "رماح"]
+  };
+
   // Step definitions for progress indicator - updated order
   const steps = [
     { step: 'report-id-check', label: 'Report ID Check', icon: Search },
@@ -68,61 +97,114 @@ const WithIDExcelTest: React.FC = () => {
     { step: 'success', label: 'Success', icon: CheckCircle }
   ];
 
+  // 🔹 Clean parsed data (remove empty rows and columns)
+  const cleanData = (rows: ExcelRow[]): ExcelRow[] => {
+    const filteredRows = rows.filter((row) =>
+      Object.values(row).some(
+        (val) => val !== "" && val !== null && val !== undefined
+      )
+    );
+
+    const allKeys = new Set<string>();
+    filteredRows.forEach((row) => {
+      Object.keys(row).forEach((key) => {
+        const val = row[key];
+        if (typeof val === "string") row[key] = val.trim();
+        if (row[key] !== "") allKeys.add(key);
+      });
+    });
+
+    return filteredRows.map((row) => {
+      const newRow: ExcelRow = {};
+      allKeys.forEach((key) => (newRow[key] = row[key] ?? ""));
+      return newRow;
+    });
+  };
+
+  // 🔹 Load data for a selected sheet
+  const loadSheetData = (sheetName: string, wb: XLSX.WorkBook) => {
+    const worksheet = wb.Sheets[sheetName];
+    const jsonData: ExcelRow[] = XLSX.utils.sheet_to_json(worksheet, {
+      defval: "",
+    });
+
+    const cleaned = cleanData(jsonData);
+    setColumns(cleaned.length > 0 ? Object.keys(cleaned[0]) : []);
+    setPreviewData(cleaned);
+    setSelectedSheet(sheetName);
+  };
+
+  // 🔹 Open Excel Preview
+  const openExcelPreview = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const binaryStr = event.target?.result;
+      if (!binaryStr) return;
+
+      const wb = XLSX.read(binaryStr, { type: "binary" });
+      setWorkbook(wb);
+      setSheets(wb.SheetNames);
+      loadSheetData(wb.SheetNames[0], wb);
+      setIsPreviewOpen(true);
+    };
+    reader.readAsBinaryString(file);
+  };
+
   // Step 1: Check Report ID
-const handleCheckReport = async () => {
-  if (!reportId.trim()) {
-    setError("Please enter a report ID");
-    return;
-  }
-
-  setIsCheckingReport(true);
-  setError("");
-  setReportExists(null);
-
-  try {
-    const result = await validateExcelData(reportId, {});
-    console.log("Report ID check result:", result);
-
-    // Check the status in the data object
-    if (result.data?.status === 'NOT_FOUND') {
-      setReportExists(false);
-      setError("Report with this ID does not exist. Please check the ID and try again.");
-    } else if (result.data?.status === 'SUCCESS') {
-      setReportExists(true);
-      setError("");
-    } else if (result.data?.status === 'MACROS_EXIST') {
-      setReportExists(false);
-      setError("Only works on reports with no macros. Please use a different report ID.");
-    } else {
-      // Handle unexpected status values
-      setReportExists(false);
-      setError("Unexpected response from server. Please try again.");
+  const handleCheckReport = async () => {
+    if (!reportId.trim()) {
+      setError("Please enter a report ID");
+      return;
     }
-  } catch (err: any) {
-    console.error("Error checking report:", err);
 
-    // ✅ Gracefully handle 400 responses
-    if (err?.response?.status === 400 || err?.status === 400) {
-      setReportExists(false);
-      setError("Report with this ID does not exist. Please check the ID and try again.");
-    } else {
-      setReportExists(false);
-      setError(err.message || "Error checking report ID. Please try again.");
+    setIsCheckingReport(true);
+    setError("");
+    setReportExists(null);
+
+    try {
+      const result = await validateExcelData(reportId, {});
+      console.log("Report ID check result:", result);
+
+      // Check the status in the data object
+      if (result.data?.status === 'NOT_FOUND') {
+        setReportExists(false);
+        setError("Report with this ID does not exist. Please check the ID and try again.");
+      } else if (result.data?.status === 'SUCCESS') {
+        setReportExists(true);
+        setError("");
+      } else if (result.data?.status === 'MACROS_EXIST') {
+        setReportExists(false);
+        setError("Only works on reports with no macros. Please use a different report ID.");
+      } else {
+        // Handle unexpected status values
+        setReportExists(false);
+        setError("Unexpected response from server. Please try again.");
+      }
+    } catch (err: any) {
+      console.error("Error checking report:", err);
+
+      // ✅ Gracefully handle 400 responses
+      if (err?.response?.status === 400 || err?.status === 400) {
+        setReportExists(false);
+        setError("Report with this ID does not exist. Please check the ID and try again.");
+      } else {
+        setReportExists(false);
+        setError(err.message || "Error checking report ID. Please try again.");
+      }
+    } finally {
+      setIsCheckingReport(false);
     }
-  } finally {
-    setIsCheckingReport(false);
-  }
-};
-
+  };
 
   // Step 2: Excel File Upload
   const handleExcelUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files[0]) {
-      setExcelFile(files[0]);
+      const file = files[0];
+      setExcelFile(file);
       setError("");
       try {
-        const sheetsData = await readExcelFile(files[0]);
+        const sheetsData = await readExcelFile(file);
 
         // Validate that we have exactly 2 sheets for ID test
         if (sheetsData.length !== 2) {
@@ -131,7 +213,11 @@ const handleCheckReport = async () => {
         }
 
         setExcelDataSheets(sheetsData);
-        setCurrentStep('excel-validation');
+
+        // Automatically open preview when validation is successful
+        if (sheetsData.length === 2) {
+          openExcelPreview(file);
+        }
       } catch (err) {
         console.error(err);
         setError("Error reading Excel file. Please make sure the file is valid.");
@@ -161,13 +247,24 @@ const handleCheckReport = async () => {
 
   // Step 4: Upload to DB
   const handleUploadToDB = async () => {
-    if (!excelFile || !reportId.trim()) return;
+    if (!excelFile || !reportId.trim() || !region || !city || !inspectionDate) {
+      setError("All fields are required");
+      return;
+    }
 
     try {
       setIsUploading(true);
+      setError("");
 
-      // Upload to DB
-      const response = await uploadAssetsToDB(reportId, excelFile);
+      // Upload to DB with all required fields
+      const response = await uploadAssetsToDB(
+        reportId,
+        excelFile,
+        region,
+        city,
+        inspectionDate
+      );
+
       console.log("Upload response:", response);
 
       if (response.data?.status === "SUCCESS") {
@@ -176,9 +273,9 @@ const handleCheckReport = async () => {
         setError("Failed to save report. Please try again.");
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
-      setError("Error during upload. Please try again.");
+      setError(error.message || "Error during upload. Please try again.");
     } finally {
       setIsUploading(false);
     }
@@ -212,6 +309,9 @@ const handleCheckReport = async () => {
     setExcelErrors([]);
     setReportId("");
     setReportExists(null);
+    setRegion("");
+    setCity("");
+    setInspectionDate("");
     setError("");
   };
 
@@ -221,7 +321,22 @@ const handleCheckReport = async () => {
     window.open("/ID.xlsx", "_blank");
   };
 
+  // Get current date in YYYY-MM-DD format for max date
+  const getCurrentDate = () => {
+    return new Date().toISOString().split('T')[0];
+  };
+
+  // Get date 10 years ago for min date (reasonable range)
+  const getMinDate = () => {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() - 10);
+    return date.toISOString().split('T')[0];
+  };
+
   const isExcelValid = excelErrors.length === 0;
+
+  // Get cities based on selected region
+  const availableCities = region ? citiesByRegion[region] || [] : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
@@ -344,6 +459,83 @@ const handleCheckReport = async () => {
                 </div>
               </div>
 
+              {/* New Form Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {/* Region Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Region *
+                  </label>
+                  <select
+                    value={region}
+                    onChange={(e) => {
+                      setRegion(e.target.value);
+                      setCity(""); // Reset city when region changes
+                    }}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  >
+                    <option value="">Select Region</option>
+                    {regions.map((regionOption) => (
+                      <option key={regionOption} value={regionOption}>
+                        {regionOption}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* City Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    City *
+                  </label>
+                  <select
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    disabled={!region}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">Select City</option>
+                    {availableCities.map((cityOption) => (
+                      <option key={cityOption} value={cityOption}>
+                        {cityOption}
+                      </option>
+                    ))}
+                  </select>
+                  {!region && (
+                    <p className="text-xs text-gray-500 mt-1">Please select a region first</p>
+                  )}
+                </div>
+
+                {/* Enhanced Inspection Date Picker */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Inspection Date *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={inspectionDate}
+                      onChange={(e) => setInspectionDate(e.target.value)}
+                      min={getMinDate()}
+                      max={getCurrentDate()}
+                      className="w-full px-4 py-3 pl-4 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none"
+                      placeholder="Select inspection date"
+                    />
+                    <Calendar className="absolute right-3 top-3.5 h-5 w-5 text-gray-400 pointer-events-none" />
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <p className="text-xs text-gray-500">
+                      Select the date when the inspection was conducted
+                    </p>
+                    {inspectionDate && (
+                      <p className="text-xs text-blue-600 font-medium">
+                        Selected: {new Date(inspectionDate).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="text-center mb-4">
                 <button
                   onClick={handleDownloadTemplate}
@@ -363,6 +555,19 @@ const handleCheckReport = async () => {
                 description="Upload Excel file with 2 asset sheets"
               />
 
+              {/* Preview Button - Show when file is uploaded but not yet validated */}
+              {excelFile && (
+                <div className="text-center">
+                  <button
+                    onClick={() => openExcelPreview(excelFile)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
+                  >
+                    <Eye className="w-4 h-4" />
+                    Preview Excel File
+                  </button>
+                </div>
+              )}
+
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <div className="flex items-center gap-3">
@@ -377,7 +582,7 @@ const handleCheckReport = async () => {
                 onNext={() => excelFile && setCurrentStep('excel-validation')}
                 nextLabel="Continue to Validation"
                 backLabel="Back to Report Check"
-                nextDisabled={!excelFile}
+                nextDisabled={!excelFile || !region || !city || !inspectionDate}
               />
             </div>
           )}
@@ -403,6 +608,17 @@ const handleCheckReport = async () => {
                         Sheets: {excelDataSheets.length} (Sheet 1 & Sheet 2)
                       </p>
                     </div>
+                  </div>
+
+                  {/* Preview button in validation step */}
+                  <div className="mt-3 text-center">
+                    <button
+                      onClick={() => openExcelPreview(excelFile)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Preview Excel File
+                    </button>
                   </div>
                 </div>
               )}
@@ -479,22 +695,50 @@ const handleCheckReport = async () => {
                     {excelFile?.name}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="font-medium">Validation:</span>
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="font-medium">Region:</span>
                   <span className="text-green-600 flex items-center gap-2">
                     <CheckCircle className="w-4 h-4" />
-                    Passed (2 sheets)
+                    {region}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="font-medium">City:</span>
+                  <span className="text-green-600 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    {city}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="font-medium">Inspection Date:</span>
+                  <span className="text-green-600 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    {inspectionDate ? new Date(inspectionDate).toLocaleDateString() : 'Not set'}
                   </span>
                 </div>
               </div>
 
+              {/* Preview button in upload step */}
+              {excelFile && (
+                <div className="text-center">
+                  <button
+                    onClick={() => openExcelPreview(excelFile)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors mb-4"
+                  >
+                    <Eye className="w-4 h-4" />
+                    Preview Excel File Before Upload
+                  </button>
+                </div>
+              )}
+
               <NavigationButtons
                 onBack={() => setCurrentStep('excel-validation')}
                 onNext={handleUploadToDB}
-                nextLabel={isUploading ? "Uploading..." : "Upload To Database"}
+                nextLabel={isUploading ? "Saving..." : "Save and Submit Later"}
                 backLabel="Back to Validation"
                 nextDisabled={!excelFile || !reportId.trim() || isUploading}
                 nextIcon={isUploading ? RefreshCw : Save}
+                showSubmitNow={true}
               />
 
               {error && (
@@ -545,6 +789,77 @@ const handleCheckReport = async () => {
           )}
         </div>
       </div>
+
+      {/* 🔹 Excel Preview Modal */}
+      {isPreviewOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white w-11/12 max-w-6xl rounded-lg shadow-lg overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center px-4 py-3 border-b bg-gray-100">
+              <h2 className="text-lg font-semibold">Excel Preview - {excelFile?.name}</h2>
+              <button
+                onClick={() => setIsPreviewOpen(false)}
+                className="text-gray-500 hover:text-gray-700 text-xl"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Sheet Tabs */}
+            <div className="flex border-b overflow-x-auto">
+              {sheets.map((sheet) => (
+                <button
+                  key={sheet}
+                  onClick={() => workbook && loadSheetData(sheet, workbook)}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 ${sheet === selectedSheet
+                      ? "border-blue-500 text-blue-600"
+                      : "border-transparent text-gray-600 hover:text-blue-600"
+                    }`}
+                >
+                  {sheet}
+                </button>
+              ))}
+            </div>
+
+            {/* Data Table */}
+            <div className="max-h-[70vh] overflow-auto p-4">
+              {previewData.length > 0 ? (
+                <table className="min-w-full text-sm border">
+                  <thead className="bg-gray-100 sticky top-0">
+                    <tr>
+                      {columns.map((col) => (
+                        <th key={col} className="px-3 py-2 border-b font-medium text-left">
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewData.map((row, i) => (
+                      <tr key={i} className="even:bg-gray-50">
+                        {columns.map((col) => (
+                          <td key={col} className="px-3 py-2 border-b">
+                            {String(row[col] ?? "")}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-gray-500 text-center mt-4">
+                  No data available for this sheet.
+                </p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-3 border-t text-center text-sm text-gray-500">
+              {previewData.length} rows loaded • Sheet: {selectedSheet}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

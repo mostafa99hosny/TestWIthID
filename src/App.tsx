@@ -9,25 +9,23 @@ import GetTest from './features/Testing/pages/GetTest';
 import TaqeemLoginTest from './features/Testing/pages/TaqeemLoginTest';
 import NavigateUploadTest from './features/Testing/pages/NavigateUploadTest';
 import WithIDExcelTest from './features/Testing/pages/WithIDExcelTest';
-import ExcelPreviewer from './features/Testing/components/ExcelPreviewer';
 
 export function App() {
   return (
     <TaqeemAuthProvider>
       <SocketProvider>
         <ProgressProvider>
-            <Router>
-                <Layout>
-                  <Routes>
-                    {/* <Route path="/" element={<ExcelTest />} /> */}
-                    <Route path="/" element={<TaqeemLoginTest />} />
-                    <Route path="/testing/with-id" element={<WithIDExcelTest />} />
-                    <Route path="/testing/get" element={<GetTest />} />
-                    <Route path="/testing/navigate-upload" element={<NavigateUploadTest />} />
-                  </Routes>
-                  <ExcelPreviewer/>
-                </Layout>
-            </Router>
+          <Router>
+            <Layout>
+              <Routes>
+                {/* <Route path="/" element={<ExcelTest />} /> */}
+                <Route path="/" element={<TaqeemLoginTest />} />
+                <Route path="/testing/with-id" element={<WithIDExcelTest />} />
+                <Route path="/testing/get" element={<GetTest />} />
+                <Route path="/testing/navigate-upload" element={<NavigateUploadTest />} />
+              </Routes>
+            </Layout>
+          </Router>
         </ProgressProvider>
       </SocketProvider>
     </TaqeemAuthProvider>

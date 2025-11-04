@@ -34,10 +34,19 @@ export const getAllAssets = async () => {
   }
 };
 
-export const uploadAssetsToDB = async (reportId: string, excelFile: File) => {
+export const uploadAssetsToDB = async (
+  reportId: string, 
+  excelFile: File,
+  region: string,
+  city: string,
+  inspectionDate: string
+) => {
   const formData = new FormData();
   formData.append("reportId", reportId);
   formData.append("excelFile", excelFile);
+  formData.append("region", region);
+  formData.append("city", city);
+  formData.append("inspectionDate", inspectionDate);
 
   try {
     const response = await api.post("/taqeemSubmission/save-without-base", formData, {
