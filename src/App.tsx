@@ -10,6 +10,8 @@ import TaqeemLoginTest from './features/Testing/pages/TaqeemLoginTest';
 import NavigateUploadTest from './features/Testing/pages/NavigateUploadTest';
 import WithIDExcelTest from './features/Testing/pages/WithIDExcelTest';
 import AssetCreate from './features/Testing/pages/AssetCreate';
+import DeleteReport from './features/Testing/pages/DeleteReport';
+import GrabMacroIds from './features/Testing/pages/GrabMacroIds';
 
 export function App() {
   return (
@@ -24,6 +26,8 @@ export function App() {
                 <Route path="/testing/asset-create" element={<AssetCreate />} />
                 <Route path="/testing/get" element={<GetTest />} />
                 <Route path="/testing/navigate-upload" element={<NavigateUploadTest />} />
+                <Route path='/testing/delete-report' element={<DeleteReport />} />
+                <Route path="/testing/grab-macro-ids" element={<GrabMacroIds />} />
               </Routes>
             </Layout>
           </Router>

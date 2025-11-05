@@ -143,6 +143,55 @@ export const taqeemLogin = async (email: string, password: string, method?: stri
   }
 };
 
+export const grabMacroIds = async (reportId: string, tabsNum: number) => {
+  try {
+    const response = await api.post('/taqeemSubmission/grab-macro-ids', {
+      reportId: reportId.trim(),
+      tabsNum,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Error grabbing macro IDs:", error);
+
+    // Handle specific error cases
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    } else if (error.response?.status === 404) {
+      throw new Error('Report not found. Please check the report ID.');
+    } else if (error.response?.status === 400) {
+      throw new Error('Invalid report ID format.');
+    } else if (error.message?.includes('timeout')) {
+      throw new Error('Request timeout. Please try again.');
+    } else {
+      throw new Error('Error extracting macro IDs. Please try again.');
+    }
+  }
+};
+
+export const deleteReport = async (reportId: string) => {
+  try {
+    const response = await api.post('/taqeemDelete/delete-report', {
+      reportId: reportId.trim(),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Error deleting report:", error);
+
+    // Handle specific error cases
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    } else if (error.response?.status === 404) {
+      throw new Error('Report not found. Please check the report ID.');
+    } else if (error.response?.status === 403) {
+      throw new Error('You do not have permission to delete this report.');
+    } else if (error.message?.includes('timeout')) {
+      throw new Error('Deletion timeout. Please try again.');
+    } else {
+      throw new Error('Error deleting report. Please try again.');
+    }
+  }
+};
+
 export const createAssets = async (
   reportId: string,
   macroCount: number,

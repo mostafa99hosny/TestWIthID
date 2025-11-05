@@ -43,6 +43,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
         {
           name: "Asset Create Test",
           path: "/testing/asset-create"
+        },
+        {
+          name: 'Delete Report Test',
+          path: '/testing/delete-report'
+        },
+        {
+          name: 'Grab Macro IDs Test',
+          path: '/testing/grab-macro-ids'
+        },
+        {
+          name: 'Upload Excel Test',
+          path: '/testing/excel-upload'
+        },
+        {
+          name: 'Add Other Fields',
+          path: '/testing/add-other-fields'
         }
         // {
         //   name: 'Create Excel Test',

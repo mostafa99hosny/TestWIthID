@@ -8,7 +8,7 @@ interface TaqeemAuthContextType {
 const TaqeemAuthContext = createContext<TaqeemAuthContextType | undefined>(undefined);
 
 export function TaqeemAuthProvider({ children }: { children: ReactNode }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
 
   return (
     <TaqeemAuthContext.Provider value={{ isLoggedIn, setIsLoggedIn }}>

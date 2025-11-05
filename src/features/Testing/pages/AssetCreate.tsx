@@ -16,9 +16,11 @@ import { validateExcelData, createAssets } from "../api";
 import ProgressIndicator from "../components/ProgressIndicator";
 import StepHeader from "../components/StepHeader";
 import NavigationButtons from "../components/NavigationButtons";
+import { useTaqeemAuth } from "../../../shared/context/TaqeemAuthContext";
 
 const AssetCreate: React.FC = () => {
     const navigate = useNavigate();
+    const { isLoggedIn } = useTaqeemAuth();
 
     // Step management
     const [currentStep, setCurrentStep] = useState<
@@ -29,6 +31,7 @@ const AssetCreate: React.FC = () => {
     const [reportId, setReportId] = useState("");
     const [reportExists, setReportExists] = useState<boolean | null>(null);
     const [isCheckingReport, setIsCheckingReport] = useState(false);
+
 
     // Asset configuration state
     const [tabsInput, setTabsInput] = useState("");
@@ -200,7 +203,7 @@ const AssetCreate: React.FC = () => {
                                         />
                                         <button
                                             onClick={handleCheckReport}
-                                            disabled={!reportId.trim() || isCheckingReport}
+                                            disabled={!reportId.trim() || isCheckingReport || !isLoggedIn}
                                             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-semibold flex items-center gap-2 transition-colors"
                                         >
                                             {isCheckingReport ? (

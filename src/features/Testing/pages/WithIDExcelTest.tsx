@@ -30,6 +30,7 @@ import CheckResult from "../components/CheckResult";
 import NavigationButtons from "../components/NavigationButtons";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SuccessState from "../components/SuccessState";
+import { useTaqeemAuth } from "../../../shared/context/TaqeemAuthContext";
 
 interface ExcelRow {
   [key: string]: string | number | boolean | null;
@@ -49,6 +50,7 @@ const WithIDExcelTest: React.FC = () => {
   const [reportId, setReportId] = useState("");
   const [reportExists, setReportExists] = useState<boolean | null>(null);
   const [isCheckingReport, setIsCheckingReport] = useState(false);
+  const { isLoggedIn } = useTaqeemAuth();
 
   // New form fields
   const [region, setRegion] = useState("");
@@ -388,7 +390,7 @@ const WithIDExcelTest: React.FC = () => {
                     />
                     <button
                       onClick={handleCheckReport}
-                      disabled={!reportId.trim() || isCheckingReport}
+                      disabled={!reportId.trim() || isCheckingReport || !isLoggedIn}
                       className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-semibold flex items-center gap-2 transition-colors"
                     >
                       {isCheckingReport ? (
@@ -812,8 +814,8 @@ const WithIDExcelTest: React.FC = () => {
                   key={sheet}
                   onClick={() => workbook && loadSheetData(sheet, workbook)}
                   className={`px-4 py-2 text-sm font-medium border-b-2 ${sheet === selectedSheet
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-600 hover:text-blue-600"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-600 hover:text-blue-600"
                     }`}
                 >
                   {sheet}
