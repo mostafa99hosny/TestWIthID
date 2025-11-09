@@ -45,9 +45,13 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     socket.on('connect', () => {
       console.log('[SOCKET CONTEXT] Connected:', socket.id);
       setIsConnected(true);
-      
+
       // Identify this connection with the persistent session ID
       socket.emit('user_identified', sessionId);
+    });
+
+    socket.on('MACRO_EDIT', (data) => {
+      console.log('[SOCKET CONTEXT] MACRO_EDIT event received:', data);
     });
 
     socket.on('disconnect', (reason) => {

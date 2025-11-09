@@ -145,3 +145,70 @@ export const addCommonFields = async (reportId: string, inspectionDate: any, reg
     throw new Error('Error adding common fields');
   }
 };
+
+export const checkMacroStatus = async (reportId: string, tabsNum: string) => {
+  try {
+    const response = await api.post('/taqeemSubmission/check-macro-status', {
+      reportId: reportId.trim(),
+      tabsNum: parseInt(tabsNum),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Error checking macro status:", error);
+
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    } else if (error.response?.status === 404) {
+      throw new Error('Report not found. Please check the report ID.');
+    } else {
+      throw new Error('Error checking macro status. Please try again.');
+    }
+  }
+};
+
+export const halfCheckMacroStatus = async (reportId: string, tabsNum: string) => {
+  try {
+    const response = await api.post('/taqeemSubmission/half-check-macro-status', {
+      reportId: reportId.trim(),
+      tabsNum: parseInt(tabsNum),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Error checking macro status:", error);
+
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    } else if (error.response?.status === 404) {
+      throw new Error('Report not found. Please check the report ID.');
+    } else {
+      throw new Error('Error checking macro status. Please try again.');
+    }
+  }
+};
+
+export const submitMacro = async (reportId: string, tabsNum: number) => {
+  try {
+    const response = await api.post('/taqeemSubmission/edit-macros', {
+      reportId: reportId.trim(),
+      tabsNum,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Error submitting macro:", error);
+
+    // Handle specific error cases
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    } else if (error.response?.status === 404) {
+      throw new Error('Report not found. Please check the report ID.');
+    } else if (error.response?.status === 400) {
+      throw new Error('Invalid report ID format.');
+    } else if (error.response?.status === 422) {
+      throw new Error('Macro validation failed. Please check the report data.');
+    } else if (error.message?.includes('timeout')) {
+      throw new Error('Submission timeout. Please try again.');
+    } else {
+      throw new Error('Error submitting macro. Please try again.');
+    }
+  }
+};

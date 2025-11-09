@@ -11,6 +11,7 @@ import DeleteReport from './features/Testing/pages/DeleteReport';
 import GrabMacroIds from './features/Testing/pages/GrabMacroIds';
 import UpdateReportWithExcel from './features/Testing/pages/UpdateReportWithExcel';
 import AddCommonFields from './features/Testing/pages/AddCommonFields';
+import SubmitMacro from './features/Testing/pages/MacroEdits';
 
 export function App() {
   return (
@@ -27,6 +28,7 @@ export function App() {
                 <Route path="/testing/grab-macro-ids" element={<GrabMacroIds />} />
                 <Route path="/testing/excel-upload" element={<UpdateReportWithExcel />} />
                 <Route path="/testing/add-other-fields" element={<AddCommonFields />} />
+                <Route path='/testing/submit-macros' element={<SubmitMacro />} />
               </Routes>
             </Layout>
           </Router>

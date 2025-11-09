@@ -9,6 +9,9 @@ interface ProgressData {
   macro_id?: number;
   form_id?: string;
   error?: string;
+  failedRecords?: number;
+  numTabs?: number;
+  progress_type?: any;
 }
 
 interface ProgressState {
@@ -19,13 +22,14 @@ interface ProgressState {
   stopped: boolean;
   actionType?: "submit" | "retry" | "check";
   data?: ProgressData;
+
 }
 
 interface GlobalProgressState {
   [reportId: string]: ProgressState;
 }
 
-type ProgressAction = 
+type ProgressAction =
   | { type: 'UPDATE_PROGRESS'; payload: { reportId: string; updates: Partial<ProgressState> } }
   | { type: 'CLEAR_PROGRESS'; payload: { reportId: string } }
   | { type: 'SET_PROGRESS_STATE'; payload: GlobalProgressState };

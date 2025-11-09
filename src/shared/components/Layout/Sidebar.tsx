@@ -59,6 +59,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
         {
           name: 'Add Other Fields',
           path: '/testing/add-other-fields'
+        },
+        {
+          name: 'Submit Macro Test',
+          path: '/testing/submit-macros'
         }
         // {
         //   name: 'Create Excel Test',

@@ -4,148 +4,103 @@ import { useProgress } from '../context/ProgressContext';
 
 export const useSocketManager = () => {
   const { socket } = useSocket();
-  const { dispatch } = useProgress();
+  const { dispatch, progressStates } = useProgress();
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket) {
+      console.log('[SOCKET MANAGER] ❌ No socket available');
+      return;
+    }
 
-    const handleFormFillProgress = (data: any) => {
-      console.log('[SOCKET MANAGER] Progress update:', data);
-      const { reportId, status, message, data: progressData } = data;
+    console.log('[SOCKET MANAGER] ✅ Setting up socket listeners, socket ID:', socket.id);
 
-      let progress = 0;
+    // Enhanced logging for ALL events
+    const handleAnyEvent = (eventName: string, ...args: any[]) => {
+      console.log(`🎯 [SOCKET MANAGER] ALL EVENTS - ${eventName}:`, args);
+    };
 
-      // Calculate progress based on status and data
-      if (progressData?.percentage !== undefined) {
-        progress = progressData.percentage;
-      } else if (progressData?.current && progressData?.total) {
-        progress = Math.round((progressData.current / progressData.total) * 100);
-      } else {
-        switch (status) {
-          case 'INITIALIZING':
-          case 'FETCHING_RECORD':
-            progress = 5;
-            break;
-          case 'COMPLETE':
-            progress = 100;
-            break;
-        }
+    socket.onAny(handleAnyEvent);
+
+    const handleProgress = (data: any) => {
+      console.log('[SOCKET MANAGER] 🔥 macro_edit_progress received:', data);
+
+      const reportId = data.reportId;
+      if (!reportId) {
+        console.error('[SOCKET MANAGER] ❌ No reportId found in progress data');
+        return;
       }
+
+      console.log('[SOCKET MANAGER] 🚀 Dispatching progress update for report:', reportId);
 
       dispatch({
         type: 'UPDATE_PROGRESS',
         payload: {
           reportId,
           updates: {
-            status,
-            message,
-            progress,
-            data: progressData
+            status: data.status === 'COMPLETED' ? 'COMPLETE' : data.status,
+            message: data.message || 'Processing...',
+            progress: data.data?.percentage || 0,
+            data: data.data
           }
         }
       });
     };
 
-    const handleFormFillComplete = (data: any) => {
-      console.log('[SOCKET MANAGER] Form fill complete:', data);
-      const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-      
-      const handleCompletion = async () => {
+    const handleComplete = (data: any) => {
+      console.log('[SOCKET MANAGER] ✅ macro_edit_complete received:', data);
+
+      if (data.reportId) {
+        console.log('[SOCKET MANAGER] 🚀 Dispatching completion for report:', data.reportId);
+
         dispatch({
           type: 'UPDATE_PROGRESS',
           payload: {
             reportId: data.reportId,
             updates: {
+              status: 'COMPLETE',
+              message: data.message || 'Completed!',
               progress: 100,
-              message: 'Complete!',
-              status: 'COMPLETE'
+              data: data.data
             }
           }
         });
-        
-        await delay(2000);
-        dispatch({
-          type: 'CLEAR_PROGRESS',
-          payload: { reportId: data.reportId }
-        });
-      };
-      
-      handleCompletion();
+      }
     };
 
-    const handleFormFillError = (data: any) => {
-      console.error('[SOCKET MANAGER] Form fill error:', data);
-      const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-      
-      const handleError = async () => {
+    const handleError = (data: any) => {
+      console.log('[SOCKET MANAGER] ❌ macro_edit_error received:', data);
+
+      if (data.reportId) {
+        console.log('[SOCKET MANAGER] 🚀 Dispatching error for report:', data.reportId);
+
         dispatch({
           type: 'UPDATE_PROGRESS',
           payload: {
             reportId: data.reportId,
             updates: {
-              message: `Error: ${data.error}`,
+              status: 'FAILED',
+              message: data.error || 'An error occurred',
               progress: 0,
-              status: 'FAILED'
+              data: data.data
             }
           }
         });
-        
-        await delay(3000);
-        dispatch({
-          type: 'CLEAR_PROGRESS',
-          payload: { reportId: data.reportId }
-        });
-      };
-      
-      handleError();
+      }
     };
 
-    const handleFormFillPaused = (data: any) => {
-      console.log('[SOCKET MANAGER] Form fill paused:', data);
-      dispatch({
-        type: 'UPDATE_PROGRESS',
-        payload: {
-          reportId: data.reportId,
-          updates: { paused: true }
-        }
-      });
-    };
+    // Listen to the actual events being emitted
+    socket.on('macro_edit_progress', handleProgress);
+    socket.on('macro_edit_complete', handleComplete);
+    socket.on('macro_edit_error', handleError);
 
-    const handleFormFillResumed = (data: any) => {
-      console.log('[SOCKET MANAGER] Form fill resumed:', data);
-      dispatch({
-        type: 'UPDATE_PROGRESS',
-        payload: {
-          reportId: data.reportId,
-          updates: { paused: false }
-        }
-      });
-    };
+    console.log('[SOCKET MANAGER] ✅ Event listeners registered');
 
-    const handleFormFillStopped = (data: any) => {
-      console.log('[SOCKET MANAGER] Form fill stopped:', data);
-      dispatch({
-        type: 'CLEAR_PROGRESS',
-        payload: { reportId: data.reportId }
-      });
-    };
-
-    // Register event listeners
-    socket.on('form_fill_progress', handleFormFillProgress);
-    socket.on('form_fill_complete', handleFormFillComplete);
-    socket.on('form_fill_error', handleFormFillError);
-    socket.on('form_fill_paused', handleFormFillPaused);
-    socket.on('form_fill_resumed', handleFormFillResumed);
-    socket.on('form_fill_stopped', handleFormFillStopped);
-
-    // Cleanup: remove listeners when component unmounts
     return () => {
-      socket.off('form_fill_progress', handleFormFillProgress);
-      socket.off('form_fill_complete', handleFormFillComplete);
-      socket.off('form_fill_error', handleFormFillError);
-      socket.off('form_fill_paused', handleFormFillPaused);
-      socket.off('form_fill_resumed', handleFormFillResumed);
-      socket.off('form_fill_stopped', handleFormFillStopped);
+      console.log('[SOCKET MANAGER] 🧹 Cleaning up socket listeners');
+      socket.off('macro_edit_progress', handleProgress);
+      socket.off('macro_edit_complete', handleComplete);
+      socket.off('macro_edit_error', handleError);
+      socket.offAny(handleAnyEvent);
     };
   }, [socket, dispatch]);
 };
