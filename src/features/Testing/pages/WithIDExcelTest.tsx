@@ -58,7 +58,7 @@ const WithIDExcelTest: React.FC = () => {
         setCurrentStep('success');
       } else if (result.data?.status === 'MACROS_EXIST') {
         setReportExists(false);
-        setError("Only works on reports with no macros. Please use a different report ID.");
+        setError(`Report Exist with  ${result.data?.assetsExact} macros. Please use a different report ID.`);
       } else {
         // Handle unexpected status values
         setReportExists(false);
