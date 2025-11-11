@@ -6,7 +6,9 @@ import {
     MapPin,
     Calendar,
     AlertTriangle,
-    RefreshCw
+    RefreshCw,
+    Eye,
+    EyeOff
 } from "lucide-react";
 import { addCommonFields } from "../api";
 import { useTaqeemAuth } from "../../../shared/context/TaqeemAuthContext";
@@ -14,6 +16,19 @@ import { useTaqeemAuth } from "../../../shared/context/TaqeemAuthContext";
 // Define TypeScript interfaces for the regions data
 interface SaudiRegions {
     [key: string]: string[];
+}
+
+// Define interface for asset data
+interface AssetData {
+    _id?: string;
+    asset_id?: string;
+    asset_name?: string;
+    asset_type?: string;
+    location?: string;
+    inspection_date?: string;
+    region?: string;
+    city?: string;
+    [key: string]: any; // For other potential fields
 }
 
 // Saudi Arabia regions and cities data
@@ -48,6 +63,7 @@ const AddCommonFields: React.FC = () => {
     const [error, setError] = useState<string>("");
     const [success, setSuccess] = useState<boolean>(false);
     const [updateResult, setUpdateResult] = useState<any>(null);
+    const [showAssetPreview, setShowAssetPreview] = useState<boolean>(false);
 
     // Handle region change
     const handleRegionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -123,6 +139,7 @@ const AddCommonFields: React.FC = () => {
         setError("");
         setSuccess(false);
         setUpdateResult(null);
+        setShowAssetPreview(false);
     };
 
     // Get current date in YYYY-MM-DD format for date input max attribute
@@ -130,10 +147,31 @@ const AddCommonFields: React.FC = () => {
         return new Date().toISOString().split('T')[0];
     };
 
+    // Get asset data from the response
+    const assetData: AssetData[] = updateResult?.data?.asset_data || [];
+
+    // Function to get display value for a field
+    const getDisplayValue = (value: any): string => {
+        if (value === null || value === undefined) return '-';
+        if (typeof value === 'object') return JSON.stringify(value);
+        return String(value);
+    };
+
+    // Get all unique keys from asset data for table headers
+    const getAllKeys = (): string[] => {
+        const keys = new Set<string>();
+        assetData.forEach(asset => {
+            Object.keys(asset).forEach(key => {
+                keys.add(key);
+            });
+        });
+        return Array.from(keys).sort();
+    };
+
     if (success) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 py-8">
-                <div className="max-w-2xl mx-auto px-4">
+                <div className="max-w-6xl mx-auto px-4">
                     {/* Header */}
                     <div className="text-center mb-8">
                         <button
@@ -177,8 +215,89 @@ const AddCommonFields: React.FC = () => {
                                     <div className="text-sm text-gray-500">City</div>
                                     <div className="font-semibold text-green-600">{city}</div>
                                 </div>
+                                <div className="bg-white p-4 rounded-lg border border-gray-200 md:col-span-2">
+                                    <div className="text-sm text-gray-500">Assets Updated</div>
+                                    <div className="font-semibold text-green-600">{assetData.length} assets</div>
+                                </div>
                             </div>
                         </div>
+
+                        {/* Asset Data Preview */}
+                        {assetData.length > 0 && (
+                            <div className="mb-8">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-semibold text-gray-800">
+                                        Asset Data Preview ({assetData.length} assets)
+                                    </h3>
+                                    <button
+                                        onClick={() => setShowAssetPreview(!showAssetPreview)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+                                    >
+                                        {showAssetPreview ? (
+                                            <>
+                                                <EyeOff className="w-4 h-4" />
+                                                Hide Preview
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Eye className="w-4 h-4" />
+                                                Show Preview
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+
+                                {showAssetPreview && (
+                                    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                                        <div className="max-h-96 overflow-auto">
+                                            <table className="min-w-full divide-y divide-gray-200">
+                                                <thead className="bg-gray-50 sticky top-0">
+                                                    <tr>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 sticky top-0">
+                                                            #
+                                                        </th>
+                                                        {getAllKeys().map((key) => (
+                                                            <th
+                                                                key={key}
+                                                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 sticky top-0 whitespace-nowrap"
+                                                            >
+                                                                {key}
+                                                            </th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="bg-white divide-y divide-gray-200">
+                                                    {assetData.map((asset, index) => (
+                                                        <tr
+                                                            key={asset._id || index}
+                                                            className="hover:bg-gray-50 transition-colors"
+                                                        >
+                                                            <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                                                                {index + 1}
+                                                            </td>
+                                                            {getAllKeys().map((key) => (
+                                                                <td
+                                                                    key={key}
+                                                                    className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate"
+                                                                    title={getDisplayValue(asset[key])}
+                                                                >
+                                                                    {getDisplayValue(asset[key])}
+                                                                </td>
+                                                            ))}
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
+                                            <p className="text-xs text-gray-500">
+                                                Showing {assetData.length} assets. Scroll horizontally and vertically to view all data.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Additional Info */}
                         {updateResult?.message && (
