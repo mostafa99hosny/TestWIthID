@@ -35,6 +35,10 @@ const AssetCreate: React.FC = () => {
     const [reportExists, setReportExists] = useState<boolean | null>(null);
     const [reportInDB, setReportInDB] = useState<boolean | null>(null);
 
+    // Separate error states for each button
+    const [taqeemError, setTaqeemError] = useState("");
+    const [dbError, setDbError] = useState("");
+
     // Check if form is valid
     const isFormValid = reportId.trim() && tabsInput.trim() && assetCount.trim();
     const canCreateAssets = isFormValid && reportExists === true;
@@ -42,12 +46,12 @@ const AssetCreate: React.FC = () => {
     // Handle report validation in Taqeem
     const handleCheckReportInTaqeem = async () => {
         if (!reportId.trim()) {
-            setError("Please enter a report ID");
+            setTaqeemError("Please enter a report ID");
             return;
         }
 
         setIsCheckingReport(true);
-        setError("");
+        setTaqeemError("");
         setReportExists(null);
 
         try {
@@ -57,17 +61,17 @@ const AssetCreate: React.FC = () => {
             // Check the status in the data object
             if (result.data?.status === 'NOT_FOUND') {
                 setReportExists(false);
-                setError("Report with this ID does not exist. Please check the ID and try again.");
+                setTaqeemError("Report with this ID does not exist. Please check the ID and try again.");
             } else if (result.data?.status === 'SUCCESS') {
                 setReportExists(true);
-                setError("");
+                setTaqeemError("");
             } else if (result.data?.status === 'MACROS_EXIST') {
                 setReportExists(false);
-                setError("Only works on reports with no macros. Please use a different report ID.");
+                setTaqeemError(`Report Exist with  ${result.data?.assetsExact} macros. Please use a different report ID.`);
             } else {
                 // Handle unexpected status values
                 setReportExists(false);
-                setError("Unexpected response from server. Please try again.");
+                setTaqeemError("Unexpected response from server. Please try again.");
             }
         } catch (err: any) {
             console.error("Error checking report:", err);
@@ -75,10 +79,10 @@ const AssetCreate: React.FC = () => {
             // ✅ Gracefully handle 400 responses
             if (err?.response?.status === 400 || err?.status === 400) {
                 setReportExists(false);
-                setError("Report with this ID does not exist. Please check the ID and try again.");
+                setTaqeemError("Report with this ID does not exist. Please check the ID and try again.");
             } else {
                 setReportExists(false);
-                setError(err.message || "Error checking report ID. Please try again.");
+                setTaqeemError(err.message || "Error checking report ID. Please try again.");
             }
         } finally {
             setIsCheckingReport(false);
@@ -86,15 +90,14 @@ const AssetCreate: React.FC = () => {
     };
 
     // Handle report validation in Database
-    // Handle report validation in Database
     const handleCheckReportInDB = async () => {
         if (!reportId.trim()) {
-            setError("Please enter a report ID");
+            setDbError("Please enter a report ID");
             return;
         }
 
         setIsCheckingDB(true);
-        setError("");
+        setDbError("");
         setReportInDB(null);
 
         try {
@@ -104,7 +107,7 @@ const AssetCreate: React.FC = () => {
             // Check if the report exists based on the response structure
             if (result.success && result.data && result.data.report_id) {
                 setReportInDB(true);
-                setError("");
+                setDbError("");
 
                 // Optional: You can also display additional report info
                 console.log("Report found:", {
@@ -116,17 +119,17 @@ const AssetCreate: React.FC = () => {
                 setAssetCount(result.data.asset_data?.length?.toString() || "0")
             } else {
                 setReportInDB(false);
-                setError("Report not found in database. Please check the ID and try again.");
+                setDbError("Report not found in database. Please check the ID and try again.");
             }
         } catch (err: any) {
             console.error("Error checking report in DB:", err);
 
             if (err?.response?.status === 404 || err?.status === 404) {
                 setReportInDB(false);
-                setError("Report with this ID does not exist in database. Please check the ID and try again.");
+                setDbError("Report with this ID does not exist in database. Please check the ID and try again.");
             } else {
                 setReportInDB(false);
-                setError(err.message || "Error checking report ID in database. Please try again.");
+                setDbError(err.message || "Error checking report ID in database. Please try again.");
             }
         } finally {
             setIsCheckingDB(false);
@@ -187,6 +190,8 @@ const AssetCreate: React.FC = () => {
         setReportInDB(null);
         setIsCheckingReport(false);
         setIsCheckingDB(false);
+        setTaqeemError("");
+        setDbError("");
     };
 
     return (
@@ -287,6 +292,8 @@ const AssetCreate: React.FC = () => {
                                                 setReportExists(null); // Reset validation when ID changes
                                                 setReportInDB(null); // Reset DB validation when ID changes
                                                 setError("");
+                                                setTaqeemError("");
+                                                setDbError("");
                                             }}
                                             className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                             placeholder="Enter existing report ID"
@@ -295,32 +302,54 @@ const AssetCreate: React.FC = () => {
                                     </div>
 
                                     {/* Check Report Buttons */}
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={handleCheckReportInTaqeem}
-                                            disabled={!reportId.trim() || isCheckingReport || isLoading || !isLoggedIn}
-                                            className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
-                                        >
-                                            {isCheckingReport ? (
-                                                <RefreshCw className="w-4 h-4 animate-spin" />
-                                            ) : (
-                                                <Search className="w-4 h-4" />
+                                    <div className="flex gap-3 mb-2">
+                                        <div className="flex-1 flex flex-col">
+                                            <button
+                                                onClick={handleCheckReportInTaqeem}
+                                                disabled={!reportId.trim() || isCheckingReport || isLoading || !isLoggedIn}
+                                                className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
+                                            >
+                                                {isCheckingReport ? (
+                                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <Search className="w-4 h-4" />
+                                                )}
+                                                {isCheckingReport ? "Checking..." : "Check Report in Taqeem"}
+                                            </button>
+                                            {/* Taqeem Error Message */}
+                                            {taqeemError && (
+                                                <div className="mt-2 bg-red-50 border border-red-200 rounded-lg p-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <FileText className="w-4 h-4 text-red-500" />
+                                                        <span className="text-red-700 text-sm">{taqeemError}</span>
+                                                    </div>
+                                                </div>
                                             )}
-                                            {isCheckingReport ? "Checking..." : "Check Report in Taqeem"}
-                                        </button>
+                                        </div>
 
-                                        <button
-                                            onClick={handleCheckReportInDB}
-                                            disabled={!reportId.trim() || isCheckingDB || isLoading || !isLoggedIn}
-                                            className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
-                                        >
-                                            {isCheckingDB ? (
-                                                <RefreshCw className="w-4 h-4 animate-spin" />
-                                            ) : (
-                                                <Database className="w-4 h-4" />
+                                        <div className="flex-1 flex flex-col">
+                                            <button
+                                                onClick={handleCheckReportInDB}
+                                                disabled={!reportId.trim() || isCheckingDB || isLoading || !isLoggedIn}
+                                                className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
+                                            >
+                                                {isCheckingDB ? (
+                                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <Database className="w-4 h-4" />
+                                                )}
+                                                {isCheckingDB ? "Checking..." : "Check Report in DB"}
+                                            </button>
+                                            {/* DB Error Message */}
+                                            {dbError && (
+                                                <div className="mt-2 bg-red-50 border border-red-200 rounded-lg p-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <Database className="w-4 h-4 text-red-500" />
+                                                        <span className="text-red-700 text-sm">{dbError}</span>
+                                                    </div>
+                                                </div>
                                             )}
-                                            {isCheckingDB ? "Checking..." : "Check Report in DB"}
-                                        </button>
+                                        </div>
                                     </div>
 
                                     <p className="text-xs text-gray-500 mt-1">
@@ -339,7 +368,7 @@ const AssetCreate: React.FC = () => {
                                         </div>
                                     )}
 
-                                    {reportExists === false && (
+                                    {reportExists === false && !taqeemError && (
                                         <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
                                             <div className="flex items-center gap-2">
                                                 <FileText className="w-4 h-4 text-red-500" />
@@ -365,7 +394,7 @@ const AssetCreate: React.FC = () => {
                                         </div>
                                     )}
 
-                                    {reportInDB === false && (
+                                    {reportInDB === false && !dbError && (
                                         <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
                                             <div className="flex items-center gap-2">
                                                 <Database className="w-4 h-4 text-red-500" />
@@ -463,7 +492,7 @@ const AssetCreate: React.FC = () => {
                                     </div>
                                 )}
 
-                                {/* Error Display */}
+                                {/* General Error Display (for asset creation) */}
                                 {error && (
                                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                                         <div className="flex items-center gap-3">
