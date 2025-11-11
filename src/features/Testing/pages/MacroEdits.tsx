@@ -256,36 +256,44 @@ const SubmitMacro: React.FC = () => {
         };
     };
 
-    const progressDisplay = getProgressDisplay();
 
     // In your SubmitMacro component
+    // In SubmitMacro component - REPLACE THIS CODE:
     useEffect(() => {
         if (!socket || !reportId) {
             console.log('[SUBMIT MACRO] No socket or reportId for room joining');
             return;
         }
 
-        console.log(`[SUBMIT MACRO] 🔑 Joining progress rooms for report: ${reportId}`);
+        console.log(`[SUBMIT MACRO] 🔑 Joining progress room for report: ${reportId}`);
 
-        // Join the EXACT room your backend emits to
+        // Join the progress room that matches backend emission
         const progressRoom = `progress_${reportId}`;
-        console.log(`[SUBMIT MACRO] Joining room: ${progressRoom}`);
 
-        socket.emit('join_room', progressRoom);
-        socket.emit('join_progress_room', progressRoom);
+        console.log(`[SUBMIT MACRO] Emitting join_progress_room for: ${progressRoom}`);
 
-        // Listen for all events to debug
-        const handleAnyEvent = (eventName: string, ...args: any[]) => {
-            console.log(`[SUBMIT MACRO] 📢 EVENT: ${eventName}`, args);
+        // Use the proper event that backend expects
+        socket.emit('join_progress_room', reportId);
+
+        // Wait for confirmation
+        const handleRoomJoined = (data: any) => {
+            console.log('[SUBMIT MACRO] ✅ Progress room joined confirmation:', data);
         };
 
-        socket.onAny(handleAnyEvent);
+        socket.on('progress_room_joined', handleRoomJoined);
+
+        // Also listen for errors
+        const handleError = (error: any) => {
+            console.error('[SUBMIT MACRO] ❌ Room join error:', error);
+        };
+
+        socket.on('error', handleError);
 
         return () => {
-            console.log(`[SUBMIT MACRO] 🚪 Leaving room: ${progressRoom}`);
-            socket.emit('leave_room', progressRoom);
-            socket.emit('leave_progress_room', progressRoom);
-            socket.offAny(handleAnyEvent);
+            console.log(`[SUBMIT MACRO] 🚪 Leaving progress room: ${progressRoom}`);
+            socket.emit('leave_progress_room', reportId);
+            socket.off('progress_room_joined', handleRoomJoined);
+            socket.off('error', handleError);
         };
     }, [socket, reportId]);
 

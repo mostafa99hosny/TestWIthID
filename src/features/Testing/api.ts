@@ -109,6 +109,16 @@ export const createAssets = async (
   }
 };
 
+
+export const checkReportInDB = async (reportId: string) => {
+  try {
+    const response = await api.get(`/reports/by-number/${reportId.trim()}`);
+    return response.data;
+  } catch (error) {
+    throw new Error('Error checking report in database');
+  }
+};
+
 export const validateExcelData = async (reportId: string, fileData: any) => {
   try {
     const response = await api.post('/taqeemSubmission/validate-report', {
