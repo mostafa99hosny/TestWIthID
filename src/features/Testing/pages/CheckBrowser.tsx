@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { RefreshCw, CheckCircle, XCircle, AlertCircle, Plus } from "lucide-react";
-import { checkBrowserStatus, createNewWindow } from "../api";
+import { RefreshCw, CheckCircle, XCircle, AlertCircle, Plus, BarChart3 } from "lucide-react";
+import { checkBrowserStatus, createNewWindow, getBrowserStatistics } from "../api";
 
 const CheckBrowser: React.FC = () => {
     const [isChecking, setIsChecking] = useState(false);
     const [isCreatingWindow, setIsCreatingWindow] = useState(false);
+    const [isMonitoringStats, setIsMonitoringStats] = useState(false);
     const [browserStatus, setBrowserStatus] = useState<{
         isOpen: boolean | null;
         message: string;
@@ -18,10 +19,17 @@ const CheckBrowser: React.FC = () => {
         message: string;
         error?: string;
     } | null>(null);
+    const [statistics, setStatistics] = useState<{
+        success: boolean | null;
+        data: any;
+        message: string;
+        error?: string;
+    } | null>(null);
 
     const handleCheckBrowser = async () => {
         setIsChecking(true);
-        setWindowCreationResult(null); // Clear previous window creation result
+        setWindowCreationResult(null);
+        setStatistics(null); // Clear statistics when checking browser
         setBrowserStatus({
             isOpen: null,
             message: "Checking browser status..."
@@ -48,8 +56,6 @@ const CheckBrowser: React.FC = () => {
     };
 
     const handleCreateNewWindow = async () => {
-        if (!browserStatus.isOpen) return;
-
         setIsCreatingWindow(true);
         setWindowCreationResult(null);
 
@@ -69,6 +75,31 @@ const CheckBrowser: React.FC = () => {
             });
         } finally {
             setIsCreatingWindow(false);
+        }
+    };
+
+    const handleMonitorStatistics = async () => {
+        setIsMonitoringStats(true);
+        setStatistics(null);
+
+        try {
+            const result = await getBrowserStatistics();
+            console.log("Browser statistics result:", result);
+
+            setStatistics({
+                success: true,
+                data: result.data,
+                message: result.message || "Statistics retrieved successfully"
+            });
+        } catch (err: any) {
+            setStatistics({
+                success: false,
+                data: null,
+                message: "Failed to fetch browser statistics",
+                error: err.message || "Unknown error occurred"
+            });
+        } finally {
+            setIsMonitoringStats(false);
         }
     };
 
@@ -101,17 +132,25 @@ const CheckBrowser: React.FC = () => {
         return "Check Browser Status";
     };
 
+    const formatMemory = (mb: number) => {
+        return `${mb.toFixed(2)} MB`;
+    };
+
+    const formatCPU = (percent: number) => {
+        return `${percent.toFixed(1)}%`;
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
-            <div className="max-w-md mx-auto px-4">
+            <div className="max-w-4xl mx-auto px-4">
                 {/* Header */}
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-gray-800 mb-2">🌐 Check Browser</h1>
-                    <p className="text-gray-600">Check browser status and login state</p>
+                    <p className="text-gray-600">Check browser status and monitor resource usage</p>
                 </div>
 
                 {/* Main Content */}
-                <div className="bg-white rounded-2xl shadow-lg p-6">
+                <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
                     <div className="text-center">
                         {/* Status Icon */}
                         <div className="mb-4">
@@ -143,8 +182,8 @@ const CheckBrowser: React.FC = () => {
                         {/* Window Creation Result */}
                         {windowCreationResult && (
                             <div className={`border rounded-lg p-3 mb-4 ${windowCreationResult.success
-                                    ? "bg-green-50 border-green-200"
-                                    : "bg-red-50 border-red-200"
+                                ? "bg-green-50 border-green-200"
+                                : "bg-red-50 border-red-200"
                                 }`}>
                                 <div className="flex items-center gap-2 justify-center">
                                     {windowCreationResult.success ? (
@@ -188,43 +227,160 @@ const CheckBrowser: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Check Button */}
-                        <button
-                            onClick={handleCheckBrowser}
-                            disabled={isChecking}
-                            className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors mb-3"
-                        >
-                            {isChecking ? (
-                                <RefreshCw className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <RefreshCw className="w-4 h-4" />
-                            )}
-                            {isChecking ? "Checking..." : "Check Browser Status"}
-                        </button>
+                        {/* Action Buttons */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                            {/* Check Button */}
+                            <button
+                                onClick={handleCheckBrowser}
+                                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+                            >
+                                {isChecking ? (
+                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <RefreshCw className="w-4 h-4" />
+                                )}
+                                {isChecking ? "Checking..." : "Check Status"}
+                            </button>
 
-                        {/* Create New Window Button */}
-                        <button
-                            onClick={handleCreateNewWindow}
-                            disabled={!browserStatus.isOpen || isCreatingWindow}
-                            className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
-                        >
-                            {isCreatingWindow ? (
-                                <RefreshCw className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <Plus className="w-4 h-4" />
-                            )}
-                            {isCreatingWindow ? "Creating..." : "Create New Window"}
-                        </button>
+                            {/* Create New Window Button */}
+                            <button
+                                onClick={handleCreateNewWindow}
+                                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+                            >
+                                {isCreatingWindow ? (
+                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Plus className="w-4 h-4" />
+                                )}
+                                {isCreatingWindow ? "Creating..." : "New Window"}
+                            </button>
+
+                            {/* Monitor Statistics Button */}
+                            <button
+                                onClick={handleMonitorStatistics}
+                                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+                            >
+                                {isMonitoringStats ? (
+                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <BarChart3 className="w-4 h-4" />
+                                )}
+                                {isMonitoringStats ? "Loading..." : "Monitor Stats"}
+                            </button>
+                        </div>
 
                         {/* Additional Info */}
-                        <p className="text-xs text-gray-500 mt-4">
-                            {browserStatus.isOpen
-                                ? "Browser is ready - you can create new windows"
-                                : "Check browser status first to enable window creation"
-                            }
+                        <p className="text-xs text-gray-500">
+                            All buttons are always available. You can try any action at any time.
                         </p>
                     </div>
                 </div>
+
+                {/* Statistics Display */}
+                {statistics && (
+                    <div className="bg-white rounded-2xl shadow-lg p-6">
+                        <div className="mb-6">
+                            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <BarChart3 className="w-5 h-5" />
+                                Browser Statistics
+                            </h3>
+
+                            {statistics.success ? (
+                                <>
+                                    {/* Browser Process Metrics */}
+                                    <div className="mb-6">
+                                        <h4 className="text-lg font-semibold text-gray-700 mb-3">Browser Process</h4>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            <div className="bg-blue-50 rounded-lg p-4 text-center">
+                                                <div className="text-2xl font-bold text-blue-600">
+                                                    {formatMemory(statistics.data.browser.total_memory_mb)}
+                                                </div>
+                                                <div className="text-sm text-blue-800">Total Memory</div>
+                                            </div>
+                                            <div className="bg-green-50 rounded-lg p-4 text-center">
+                                                <div className="text-2xl font-bold text-green-600">
+                                                    {formatCPU(statistics.data.browser.total_cpu_percent)}
+                                                </div>
+                                                <div className="text-sm text-green-800">CPU Usage</div>
+                                            </div>
+                                            <div className="bg-purple-50 rounded-lg p-4 text-center">
+                                                <div className="text-2xl font-bold text-purple-600">
+                                                    {statistics.data.browser.child_processes}
+                                                </div>
+                                                <div className="text-sm text-purple-800">Child Processes</div>
+                                            </div>
+                                            <div className="bg-orange-50 rounded-lg p-4 text-center">
+                                                <div className="text-2xl font-bold text-orange-600">
+                                                    {statistics.data.total_tabs}
+                                                </div>
+                                                <div className="text-sm text-orange-800">Open Tabs</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Tabs Table */}
+                                    <div>
+                                        <h4 className="text-lg font-semibold text-gray-700 mb-3">Open Tabs</h4>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full border-collapse border border-gray-200">
+                                                <thead>
+                                                    <tr className="bg-gray-50">
+                                                        <th className="border border-gray-200 px-4 py-2 text-left">Tab</th>
+                                                        <th className="border border-gray-200 px-4 py-2 text-left">URL</th>
+                                                        <th className="border border-gray-200 px-4 py-2 text-center">Memory Used</th>
+                                                        <th className="border border-gray-200 px-4 py-2 text-center">Memory Allocated</th>
+                                                        <th className="border border-gray-200 px-4 py-2 text-center">Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {statistics.data.tabs.map((tab: any, index: number) => (
+                                                        <tr key={tab.tab_id} className="hover:bg-gray-50">
+                                                            <td className="border border-gray-200 px-4 py-2 font-medium">
+                                                                Tab {tab.tab_index + 1}
+                                                            </td>
+                                                            <td className="border border-gray-200 px-4 py-2">
+                                                                <div className="max-w-xs truncate" title={tab.url}>
+                                                                    {tab.url}
+                                                                </div>
+                                                                <div className="text-sm text-gray-500">{tab.title}</div>
+                                                            </td>
+                                                            <td className="border border-gray-200 px-4 py-2 text-center">
+                                                                <span className="font-mono text-blue-600">
+                                                                    {formatMemory(tab.metrics.memory_mb)}
+                                                                </span>
+                                                            </td>
+                                                            <td className="border border-gray-200 px-4 py-2 text-center">
+                                                                <span className="font-mono text-green-600">
+                                                                    {formatMemory(tab.metrics.allocated_mb)}
+                                                                </span>
+                                                            </td>
+                                                            <td className="border border-gray-200 px-4 py-2 text-center">
+                                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${tab.status === 'success'
+                                                                    ? 'bg-green-100 text-green-800'
+                                                                    : 'bg-red-100 text-red-800'
+                                                                    }`}>
+                                                                    {tab.status}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                                    <XCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
+                                    <p className="text-red-700">{statistics.message}</p>
+                                    {statistics.error && (
+                                        <p className="text-red-600 text-sm mt-1">{statistics.error}</p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

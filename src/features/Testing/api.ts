@@ -162,6 +162,16 @@ export const validateExcelData = async (reportId: string, fileData: any) => {
   }
 };
 
+// In your api.ts or similar file
+export const getBrowserStatistics = async () => {
+  try {
+    const response = await api.get('/taqeemResources/resources/metrics');
+    return response.data;
+  } catch (error) {
+    throw new Error('Error fetching browser statistics');
+  }
+};
+
 // Add this to your api.js or similar file
 export const createNewWindow = async () => {
   try {
