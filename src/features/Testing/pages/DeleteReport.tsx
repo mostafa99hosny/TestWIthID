@@ -7,10 +7,11 @@ import {
     Trash2,
     Search,
     PlayCircle,
-    AlertTriangle
+    AlertTriangle,
+    Package
 } from "lucide-react";
 
-import { deleteReport, validateExcelData, changeReportStatus } from "../api";
+import { deleteReport, validateExcelData, changeReportStatus, deleteReportAssets } from "../api";
 
 const DeleteReport: React.FC = () => {
     const navigate = useNavigate();
@@ -25,6 +26,7 @@ const DeleteReport: React.FC = () => {
     const [isCheckingReport, setIsCheckingReport] = useState(false);
     const [reportExists, setReportExists] = useState<boolean | null>(null);
     const [deleteRequested, setDeleteRequested] = useState(false);
+    const [deleteAssetsRequested, setDeleteAssetsRequested] = useState(false);
 
     // New states for status change
     const [statusChangeResult, setStatusChangeResult] = useState<any>(null);
@@ -112,6 +114,32 @@ const DeleteReport: React.FC = () => {
 
         } catch (err: any) {
             console.error("Error initiating report deletion:", err);
+        }
+    };
+
+    // Handle delete only assets - fire and forget
+    const handleDeleteReportAssets = async () => {
+        if (!reportId.trim()) {
+            setError("Report ID is required");
+            return;
+        }
+
+        setError("");
+        setDeleteAssetsRequested(true);
+        setStatusChangeResult(null);
+
+        try {
+            console.log(`Sending delete assets request for report: ${reportId}`);
+
+            // Fire the delete assets request but don't wait for response
+            deleteReportAssets(reportId).then(result => {
+                console.log("Report assets deletion completed:", result);
+            }).catch(err => {
+                console.error("Report assets deletion encountered error:", err);
+            });
+
+        } catch (err: any) {
+            console.error("Error initiating report assets deletion:", err);
         }
     };
 
@@ -214,6 +242,7 @@ const DeleteReport: React.FC = () => {
                                             setError("");
                                             setReportExists(null);
                                             setDeleteRequested(false);
+                                            setDeleteAssetsRequested(false);
                                             setStatusChangeResult(null);
                                         }}
                                         className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
@@ -295,6 +324,24 @@ const DeleteReport: React.FC = () => {
                                 </div>
                             )}
 
+                            {/* Delete Assets Request Sent Confirmation */}
+                            {deleteAssetsRequested && (
+                                <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                                    <div className="flex items-center gap-3">
+                                        <CheckCircle className="w-5 h-5 text-purple-500" />
+                                        <div>
+                                            <p className="font-medium text-purple-800">Delete Assets Request Sent</p>
+                                            <p className="text-sm text-purple-600">
+                                                Delete assets request sent for Report ID: <strong>{reportId}</strong>
+                                            </p>
+                                            <p className="text-xs text-purple-500 mt-1">
+                                                You can send multiple delete assets requests if needed.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Error Display */}
                             {error && (
                                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -306,7 +353,7 @@ const DeleteReport: React.FC = () => {
                             )}
 
                             {/* Warning Box */}
-                            {!deleteRequested && (
+                            {!deleteRequested && !deleteAssetsRequested && (
                                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                                     <div className="flex items-center gap-3">
                                         <FileText className="w-5 h-5 text-yellow-500" />
@@ -328,6 +375,13 @@ const DeleteReport: React.FC = () => {
                                 >
                                     <ArrowLeft className="w-4 h-4" />
                                     Back
+                                </button>
+                                <button
+                                    onClick={handleDeleteReportAssets}
+                                    className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+                                >
+                                    <Package className="w-4 h-4" />
+                                    Delete Only Assets
                                 </button>
                                 <button
                                     onClick={handleDeleteReport}

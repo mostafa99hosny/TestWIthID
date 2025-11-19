@@ -90,6 +90,30 @@ export const deleteReport = async (reportId: string) => {
   }
 };
 
+export const deleteReportAssets = async (reportId: string) => {
+  try {
+    const response = await api.post('/taqeemDelete/delete-assets', {
+      reportId: reportId.trim(),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Error deleting report assets:", error);
+
+    // Handle specific error cases
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    } else if (error.response?.status === 404) {
+      throw new Error('Report not found. Please check the report ID.');
+    } else if (error.response?.status === 403) {
+      throw new Error('You do not have permission to delete assets for this report.');
+    } else if (error.message?.includes('timeout')) {
+      throw new Error('Deletion timeout. Please try again.');
+    } else {
+      throw new Error('Error deleting report assets. Please try again.');
+    }
+  }
+};
+
 export const createAssets = async (
   reportId: string,
   macroCount: number,
