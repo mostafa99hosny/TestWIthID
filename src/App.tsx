@@ -13,6 +13,7 @@ import UpdateReportWithExcel from './features/Testing/pages/UpdateReportWithExce
 import AddCommonFields from './features/Testing/pages/AddCommonFields';
 import SubmitMacro from './features/Testing/pages/MacroEdits';
 import CheckBrowser from './features/Testing/pages/CheckBrowser';
+import GetCompaniesUpdated from './features/Testing/pages/GetCompaniesUpdated';
 
 export function App() {
   return (
@@ -31,6 +32,7 @@ export function App() {
                 <Route path="/testing/add-other-fields" element={<AddCommonFields />} />
                 <Route path='/testing/submit-macros' element={<SubmitMacro />} />
                 <Route path='/testing/check-browser' element={<CheckBrowser />} />
+                <Route path='/testing/get-companies' element={<GetCompaniesUpdated />} />
               </Routes>
             </Layout>
           </Router>

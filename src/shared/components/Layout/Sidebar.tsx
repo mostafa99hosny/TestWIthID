@@ -67,6 +67,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
         {
           name: 'Submit Macro Test',
           path: '/testing/submit-macros'
+        },
+        {
+          name: 'Get Companies Test',
+          path: '/testing/get-companies'
         }
         // {
         //   name: 'Create Excel Test',
